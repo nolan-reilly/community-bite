@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Donor {
+  donor_id   Int            @id @unique @default(autoincrement())
+  first_name String
+  last_name  String
+  email      String         @unique
+  zipcode    String
+  city       String
+  street     String
+  state      String
+  country    String
+  password   String
+  address    String   @default("")
+  latitude   Float    @default(0.0)
+  longitude  Float    @default(0.0)
+  // Relationships
+  donations DonationPost[]
+}
+
+model FoodBank {
+  business_id   Int                       @id @unique @default(autoincrement())
+  business_name String
+  email         String                    @unique
+  zipcode       String
+  city          String
+  street        String
+  state         String
+  country       String
+  password      String
+  address    String   @default("")
+  latitude   Float    @default(0.0)
+  longitude  Float    @default(0.0)
+  // Relationships
+  inventory Inventory[]
+  requests  FoodBankDonationRequest[]
+}
+
+model Inventory {
+  business_id  Int
+  produce_name String
+  quantity     Int
+
+  // Relationship to FoodBank
+  foodBank FoodBank @relation(fields: [business_id], references: [business_id], onDelete: Cascade)
+
+  @@id(name: "inventoryKey", [business_id, produce_name]) // Composite primary key
+}
+
+model DonationPost {
+  post_id         Int                       @id @default(autoincrement())
+  donor_email     String
+  produce_name    String
+  quantity        Int
+  weight          Int
+  created_on      DateTime                  @default(now())
+  proposed_date   DateTime
+  frequency       String
+  comment         String?
+  donation_status DonationStatus?           @default(OPEN)
+  donor           Donor                     @relation(fields: [donor_email], references: [email], onDelete: Cascade)
+  requests        FoodBankDonationRequest[]
+}
+
+model FoodBankDonationRequest {
+  id             Int                        @default(autoincrement())
+  donation_id    Int
+  business_id    Int
+  request_status RequestStatus?             @default(PENDING)
+  donation_status DonationStatus?           @default(OPEN)
+
+  @@id(name: "requestKey", [donation_id, business_id]) // Composite primary key
+
+  // Relationships
+  donation DonationPost @relation(fields: [donation_id], references: [post_id], onDelete: Cascade)
+  foodBank FoodBank @relation(fields: [business_id], references: [business_id], onDelete: Cascade)
+}
+
+enum DonationStatus {
+  OPEN
+  CLOSE
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
